@@ -1,0 +1,71 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LandCover U-Net API",
+    "version": "1.0.0",
+    "description": "Occupation du sol de Kerinci (Sumatra) par un U-Net exécuté en Rust (tract). Les routes /v1/predict demandent l'en-tête x-api-key quand le serveur a une clé.",
+    "license": {"name": "MIT"}
+  },
+  "components": {
+    "securitySchemes": {"apiKey": {"type": "apiKey", "in": "header", "name": "x-api-key"}},
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {"error": {"type": "object", "properties": {
+          "code": {"type": "string", "enum": ["bad_request", "invalid_input", "too_large", "unauthorized", "busy", "timeout", "internal"]},
+          "message": {"type": "string"}}}}
+      },
+      "ClassArea": {
+        "type": "object",
+        "properties": {
+          "index": {"type": "integer"}, "label_fr": {"type": "string"}, "color": {"type": "string"},
+          "pixels": {"type": "integer"}, "hectares": {"type": "number"}, "share": {"type": "number"}
+        }
+      }
+    }
+  },
+  "paths": {
+    "/health": {"get": {"summary": "État du serveur", "responses": {"200": {"description": "{\"status\": \"ok\"}"}}}},
+    "/v1/model": {"get": {"summary": "Classes, palette, emprise de la scène, limites et métriques de test", "responses": {"200": {"description": "Description du modèle"}}}},
+    "/v1/predict/bbox": {
+      "post": {
+        "summary": "Classer une zone de la scène (lon/lat)",
+        "security": [{"apiKey": []}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {
+          "type": "object", "required": ["bbox"], "additionalProperties": false,
+          "properties": {
+            "bbox": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4, "description": "[ouest, sud, est, nord] en degrés"},
+            "include_classes": {"type": "boolean", "default": false, "description": "renvoyer aussi la grille des classes (ligne par ligne)"},
+            "opacity": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.85}
+          }},
+          "example": {"bbox": [101.25, -2.10, 101.35, -2.00]}}}},
+        "responses": {
+          "200": {"description": "bounds, window, png_base64 (RGBA, transparent hors données), areas, mean_confidence, elapsed_ms"},
+          "400": {"description": "JSON invalide", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}},
+          "401": {"description": "Clé absente ou invalide"},
+          "413": {"description": "Zone trop grande"},
+          "422": {"description": "bbox invalide ou hors de la scène"},
+          "503": {"description": "Serveur occupé (en-tête Retry-After)"},
+          "504": {"description": "Délai dépassé"}
+        }
+      }
+    },
+    "/v1/predict/image": {
+      "post": {
+        "summary": "Classer une image fournie par le client (mêmes 8 canaux, valeurs physiques)",
+        "security": [{"apiKey": []}],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {
+          "type": "object", "required": ["width", "height", "data"], "additionalProperties": false,
+          "properties": {
+            "width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1},
+            "data": {"type": "array", "items": {"type": ["number", "null"]}, "description": "height x width x 8 valeurs, pixel par pixel : réflectances B2..B7 (0-1) puis HH, HV en dB ; null = manquant"}
+          }}}}},
+        "responses": {
+          "200": {"description": "classes (1..K, 0 = manquant), areas (sans hectares), mean_confidence, elapsed_ms"},
+          "413": {"description": "Image trop grande"},
+          "422": {"description": "Taille de data incohérente"}
+        }
+      }
+    }
+  }
+}

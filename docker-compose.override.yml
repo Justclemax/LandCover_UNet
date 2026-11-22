@@ -1,0 +1,6 @@
+# Local only (Coolify ignores this file): publish the ports chosen in .env.
+services:
+  api:
+    ports: ["${API_PORT:-8030}:8030"]
+  app:
+    ports: ["${STREAMLIT_SERVER_PORT:-8501}:8910"]

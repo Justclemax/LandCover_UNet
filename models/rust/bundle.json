@@ -1,0 +1,166 @@
+{
+  "format": "landcover-bundle/1",
+  "model": {
+    "file": "model.onnx",
+    "architecture": "U-Net",
+    "parameters": 4369478,
+    "trained_at": "2026-11-22T22:18:57+00:00",
+    "fast": false,
+    "sha256": "21ac74ec9c8a4b20b9a8ad5fcafc27ecab19bfb15cbcca71923422879ff1ca00"
+  },
+  "channels": [
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "B6",
+    "B7",
+    "HH",
+    "HV"
+  ],
+  "fill": [
+    0.01990875042974949,
+    0.0415215902030468,
+    0.02766045741736889,
+    0.29860010743141174,
+    0.13662469387054443,
+    0.057071853429079056,
+    -8.02194595336914,
+    -12.750213623046875
+  ],
+  "tile": 256,
+  "tile_margin": 32,
+  "classes": [
+    {
+      "index": 1,
+      "code": 2001,
+      "label": "Primary dryland forest",
+      "label_fr": "Forêt primaire de terre ferme",
+      "color": "#006400"
+    },
+    {
+      "index": 2,
+      "code": 2002,
+      "label": "Secondary dryland forest",
+      "label_fr": "Forêt secondaire de terre ferme",
+      "color": "#228b22"
+    },
+    {
+      "index": 3,
+      "code": 2006,
+      "label": "Plantation forest",
+      "label_fr": "Forêt de plantation",
+      "color": "#32cd32"
+    },
+    {
+      "index": 4,
+      "code": 2007,
+      "label": "Dry shrub",
+      "label_fr": "Fourré sec",
+      "color": "#90ee90"
+    },
+    {
+      "index": 5,
+      "code": 2010,
+      "label": "Estate crop",
+      "label_fr": "Plantation agro-industrielle",
+      "color": "#ff4500"
+    },
+    {
+      "index": 6,
+      "code": 2012,
+      "label": "Settlement",
+      "label_fr": "Zone bâtie",
+      "color": "#f08080"
+    },
+    {
+      "index": 7,
+      "code": 2014,
+      "label": "Bare ground",
+      "label_fr": "Sol nu",
+      "color": "#d2b48c"
+    },
+    {
+      "index": 8,
+      "code": 5001,
+      "label": "Open water",
+      "label_fr": "Eau libre",
+      "color": "#87cefa"
+    },
+    {
+      "index": 9,
+      "code": 20071,
+      "label": "Wet shrub",
+      "label_fr": "Fourré humide",
+      "color": "#66cdaa"
+    },
+    {
+      "index": 10,
+      "code": 20091,
+      "label": "Pure dry agriculture",
+      "label_fr": "Agriculture sèche",
+      "color": "#ffd700"
+    },
+    {
+      "index": 11,
+      "code": 20092,
+      "label": "Mixed dry agriculture",
+      "label_fr": "Agriculture sèche mixte",
+      "color": "#ffa500"
+    },
+    {
+      "index": 12,
+      "code": 20093,
+      "label": "Paddy field",
+      "label_fr": "Rizière",
+      "color": "#008080"
+    },
+    {
+      "index": 13,
+      "code": 20122,
+      "label": "Transmigration areas",
+      "label_fr": "Zone de transmigration",
+      "color": "#c71585"
+    },
+    {
+      "index": 14,
+      "code": 50011,
+      "label": "Swamp",
+      "label_fr": "Marais",
+      "color": "#7fffd4"
+    }
+  ],
+  "scene": {
+    "file": "scene.bin",
+    "layout": "HWC",
+    "dtype": "f32le",
+    "width": 2692,
+    "height": 2751,
+    "crs": "EPSG:4326",
+    "transform": [
+      0.00026949458523585647,
+      0.0,
+      101.07178823602608,
+      0.0,
+      -0.00026949458523585647,
+      -1.7643810495391523
+    ],
+    "bounds": [
+      101.07178823602608,
+      -2.5057606535229935,
+      101.79726765948101,
+      -1.7643810495391523
+    ],
+    "sha256": "b962645b5e9b3ce2eb20ac054f4185ebdf2a12770a866804e0a16ae10396f722",
+    "name": "Kerinci, Sumatra (Indonésie)",
+    "year": 2023
+  },
+  "metrics": {
+    "test_overall_accuracy": 0.6651409240656805,
+    "test_mean_iou": 0.2443293118580763,
+    "test_macro_f1": 0.3432543321534562,
+    "test_kappa": 0.5348125802831932,
+    "rf_test_mean_iou": 0.22105043817030692,
+    "mean_confidence": 0.6524176001548767
+  }
+}

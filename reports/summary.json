@@ -1,0 +1,40 @@
+{
+  "scene": {
+    "name": "Kerinci, Sumatra (Indonésie)",
+    "year": 2023,
+    "bounds": [
+      101.07178823602608,
+      -2.5057606535229935,
+      101.79726765948101,
+      -1.7643810495391523
+    ],
+    "width": 2692,
+    "height": 2751,
+    "area_km2": 6615.87543388132
+  },
+  "forest_share_pred": 0.5765721284879026,
+  "forest_share_ref": 0.5951135640194372,
+  "agreement_all_pixels": 0.7009328114507662,
+  "mean_confidence": 0.6524176001548767,
+  "test": {
+    "test_overall_accuracy": 0.6651409240656805,
+    "test_mean_iou": 0.2443293118580763,
+    "test_macro_f1": 0.3432543321534562,
+    "test_kappa": 0.5348125802831932,
+    "rf_test_mean_iou": 0.22105043817030692,
+    "mean_confidence": 0.6524176001548767
+  },
+  "model": {
+    "parameters": 4369478,
+    "trained_at": "2026-11-22T22:18:57+00:00",
+    "fast": false,
+    "epochs": 20
+  },
+  "layers": [
+    "confidence.png",
+    "disagreement.png",
+    "prediction.png",
+    "reference.png",
+    "satellite.jpg"
+  ]
+}

@@ -1,0 +1,31 @@
+# Production (Coolify, Docker Compose build pack): no host ports.
+# In Coolify, give the "app" service its domain with the port, e.g. https://landcover.example.com:8910,
+# and leave the "api" service without a domain unless other applications must reach it.
+#
+# Local: `docker compose up --build` also reads docker-compose.override.yml (ports from .env).
+services:
+  api:
+    build:
+      context: .
+      dockerfile: serving/Dockerfile
+    expose: ["8030"]
+    environment:
+      - API_KEY=${API_KEY:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      # Memory ~ 160 MB + 75 MB x MAX_CONCURRENT x INFERENCE_THREADS (tiles of 256 x 256).
+      - MAX_CONCURRENT=${MAX_CONCURRENT:-2}
+      - INFERENCE_THREADS=${INFERENCE_THREADS:-2}
+    mem_limit: 640m
+    restart: unless-stopped
+
+  app:
+    build: .
+    expose: ["8910"]
+    environment:
+      - SERVICE_FQDN_APP_8910
+      - LANDCOVER_API_URL=http://api:8030
+      - API_KEY=${API_KEY:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped

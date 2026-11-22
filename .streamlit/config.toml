@@ -1,0 +1,39 @@
+[server]
+headless = true
+runOnSave = false
+enableStaticServing = true  # app/static/layers/* served at /app/static/
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+
+# Two complete themes: Light / Dark / System from the ⋮ > Settings menu ("System" follows the OS).
+[theme]
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+headingFont = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+headingFontWeights = [800, 700, 700, 600, 600, 600]
+baseRadius = "14px"
+buttonRadius = "999px"
+showWidgetBorder = true
+
+[theme.light]
+primaryColor = "#1f7a4d"
+backgroundColor = "#f6f6f9"
+secondaryBackgroundColor = "#ffffff"
+textColor = "#15151a"
+borderColor = "#e3e2ec"
+linkColor = "#1f7a4d"
+dataframeHeaderBackgroundColor = "#f1f0f6"
+chartCategoricalColors = ["#1f7a4d", "#b8780a", "#5b47d1"]
+
+[theme.dark]
+primaryColor = "#6fd39a"
+backgroundColor = "#0b0b0e"
+secondaryBackgroundColor = "#16161b"
+textColor = "#ececf1"
+borderColor = "#26262e"
+linkColor = "#6fd39a"
+dataframeHeaderBackgroundColor = "#1d1d24"
+chartCategoricalColors = ["#4fc183", "#c4801a", "#8f7cf0"]

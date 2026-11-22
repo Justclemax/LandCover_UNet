@@ -1,0 +1,62 @@
+[project]
+name = "landcover"
+version = "0.1.0"
+description = "Land cover segmentation (U-Net, Landsat, Kerinci) with a Rust inference API, a Dagster pipeline and a Streamlit map app"
+readme = "README.md"
+authors = [
+    { name = "Clément KM", email = "90102062+Justclemax@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+# Core: ingestion and the scene file for the Rust server (also used inside the API Docker build).
+dependencies = [
+    "numpy>=2.5.5",
+    "rasterio>=1.5.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -p no:cacheprovider"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning", "ignore::FutureWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["landcover", "ui"]
+
+[dependency-groups]
+train = [
+    "onnx>=1.23.2",
+    "onnxruntime>=1.32.0",
+    "pandas>=3.1.1",
+    "pillow>=13.0.0",
+    "scikit-learn>=1.9.1",
+    "torch>=2.15.0",
+]
+app = [
+    "folium>=1.0.0",
+    "numpy>=2.5.5",
+    "pandas>=3.1.1",
+    "streamlit>=1.67.0",
+    "streamlit-folium>=0.27.4",
+]
+pipeline = [
+    "dagster>=1.13.31",
+    "dagster-webserver>=1.13.31",
+]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[tool.uv]
+default-groups = ["train", "app", "pipeline", "dev"]

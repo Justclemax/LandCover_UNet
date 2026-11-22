@@ -1,0 +1,12 @@
+.git
+.venv
+.env
+.dagster
+logs
+data/raw
+data/processed
+models/rust/scene.bin
+models/unet.pt
+serving/target
+**/__pycache__
+.ruff_cache

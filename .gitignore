@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+logs/
+data/raw/
+data/processed/
+models/rust/scene.bin
+serving/target/
+.dagster/
+.ruff_cache/
+.DS_Store

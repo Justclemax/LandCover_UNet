@@ -1,0 +1,30 @@
+[package]
+name = "landcover-serve"
+version = "0.1.0"
+edition = "2024"
+description = "API d'inférence Rust pour le U-Net d'occupation du sol (ONNX exécuté par tract, 100 % Rust)"
+publish = false
+
+[dependencies]
+axum = "0.8"
+base64 = "0.22"
+dotenvy = "0.15"
+png = "0.17"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+subtle = "2"
+thiserror = "2"
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "limit"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tract-onnx = "0.21"
+
+[dev-dependencies]
+http-body-util = "0.1"
+tower = { version = "0.5", features = ["util"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true
