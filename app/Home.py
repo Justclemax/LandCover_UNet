@@ -14,6 +14,7 @@ nav = st.navigation(
     [
         st.Page("views/carte.py", title="Carte", icon=":material/map:", default=True),
         st.Page("views/zone.py", title="Analyser une zone", icon=":material/crop_free:"),
+        st.Page("views/monde.py", title="Partout dans le monde", icon=":material/public:"),
         st.Page("views/api.py", title="Connecter une application", icon=":material/api:"),
     ],
     position="top",

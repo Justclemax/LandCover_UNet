@@ -30,7 +30,8 @@ st.dataframe(
         {"Méthode": "GET", "Route": "/v1/model", "Rôle": "classes, couleurs, emprise de la scène, limites, métriques"},
         {"Méthode": "GET", "Route": "/v1/openapi.json", "Rôle": "description OpenAPI 3.1 (générateurs de clients)"},
         {"Méthode": "POST", "Route": "/v1/predict/bbox", "Rôle": "classer une zone [ouest, sud, est, nord] → PNG + surfaces"},
-        {"Méthode": "POST", "Route": "/v1/predict/image", "Rôle": "classer vos propres pixels (8 canaux, ≤ 256 × 256)"},
+        {"Méthode": "POST", "Route": "/v1/predict/image", "Rôle": "classer vos propres pixels en JSON (8 canaux, ≤ 256 × 256)"},
+        {"Méthode": "POST", "Route": "/v1/predict/raster", "Rôle": "même chose en binaire float32 (≤ 512 × 512), surfaces en hectares si bbox"},
     ],
     hide_index=True, width="stretch")
 

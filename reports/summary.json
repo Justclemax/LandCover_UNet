@@ -12,23 +12,23 @@
     "height": 2751,
     "area_km2": 6615.87543388132
   },
-  "forest_share_pred": 0.5765721284879026,
+  "forest_share_pred": 0.6060220212056282,
   "forest_share_ref": 0.5951135640194372,
-  "agreement_all_pixels": 0.7009328114507662,
-  "mean_confidence": 0.6524176001548767,
+  "agreement_all_pixels": 0.8290518625533753,
+  "mean_confidence": 0.8269391655921936,
   "test": {
-    "test_overall_accuracy": 0.6651409240656805,
-    "test_mean_iou": 0.2443293118580763,
-    "test_macro_f1": 0.3432543321534562,
-    "test_kappa": 0.5348125802831932,
-    "rf_test_mean_iou": 0.22105043817030692,
-    "mean_confidence": 0.6524176001548767
+    "test_overall_accuracy": 0.7270670833368242,
+    "test_mean_iou": 0.26438434533643024,
+    "test_macro_f1": 0.3674811173314929,
+    "test_kappa": 0.5883946940423022,
+    "rf_test_mean_iou": 0.22050134114048817,
+    "mean_confidence": 0.8269391655921936
   },
   "model": {
     "parameters": 4369478,
-    "trained_at": "2026-11-22T22:18:57+00:00",
+    "trained_at": "2026-11-22T22:58:52+00:00",
     "fast": false,
-    "epochs": 20
+    "epochs": 36
   },
   "layers": [
     "confidence.png",

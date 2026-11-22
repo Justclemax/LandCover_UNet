@@ -32,10 +32,12 @@ Score sur les blocs de test, comparé à la carte officielle KLHK :
 |---|---|---|---|---|
 | Classe majoritaire | 0,502 | 0,039 | – | – |
 | Forêt aléatoire par pixel (8 canaux) | 0,708 | 0,221 | 0,305 | 0,554 |
-| **U-Net** (4,4 M paramètres) | 0,665 | **0,244** | **0,343** | 0,535 |
+| **U-Net** (4,4 M paramètres) | **0,727** | **0,264** | **0,367** | **0,588** |
 
-- Le U-Net reconnaît mieux les classes moyennes et rares, d'où un meilleur mIoU et un meilleur F1 macro. Il sur-prédit encore certaines d'entre elles (fourrés), ce qui lui coûte de la précision globale face à la forêt aléatoire.
-- La forêt primaire est bien reconnue (IoU 0,82). Sol nu, fourré humide et marais restent faibles : ils couvrent moins de 0,6 % de la scène.
+- Le U-Net bat la forêt aléatoire sur tous les indicateurs, grâce au contexte spatial (patchs de 256 pixels).
+- La forêt primaire (IoU 0,87), les rizières (0,56) et l'agriculture mixte (0,52) sont bien reconnues. La part de forêt prédite (60,6 %) est proche de celle de la référence (59,5 %).
+- Sol nu, forêt de plantation et marais ne sont pas retrouvés : ils couvrent moins de 0,5 % de la scène.
+- Un premier essai (patchs de 128, perte plus fortement pondérée) sur-prédisait les classes rares : précision 0,665, mIoU 0,244.
 - La carte KLHK est dessinée à grande échelle, avec des polygones lissés : il s'agit d'un **accord avec la référence**, pas d'une vérité terrain au pixel près.
 
 ## Inférence en Rust
@@ -53,7 +55,8 @@ Score sur les blocs de test, comparé à la carte officielle KLHK :
 | GET | `/v1/model` | classes, couleurs, emprise, limites, métriques |
 | GET | `/v1/openapi.json` | description OpenAPI 3.1 |
 | POST | `/v1/predict/bbox` | classer une zone `[ouest, sud, est, nord]` : calque PNG, surfaces par classe |
-| POST | `/v1/predict/image` | classer ses propres pixels (8 canaux, ≤ 256 × 256) |
+| POST | `/v1/predict/image` | classer ses propres pixels en JSON (8 canaux, ≤ 256 × 256) |
+| POST | `/v1/predict/raster` | la même chose en binaire float32 (≤ 512 × 512), surfaces en hectares si la zone est donnée |
 
 ```bash
 curl -s localhost:8030/v1/predict/bbox -H 'content-type: application/json' \
@@ -68,6 +71,21 @@ Le serveur applique les protections suivantes :
 - un délai maximal, au-delà duquel il renvoie 504 ;
 - des erreurs JSON uniformes ;
 - un arrêt propre sur SIGTERM.
+
+## Partout dans le monde
+
+La page « Partout dans le monde » classe un rectangle dessiné n'importe où sur la Terre, en trois étapes :
+
+1. Elle télécharge depuis [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) (gratuit, sans compte) les images Landsat 8/9 de l'année choisie et la mosaïque radar ALOS PALSAR-2, disponible de 2015 à 2021 (la plus récente est utilisée).
+2. Elle masque les nuages et calcule la médiane des observations claires, sur la même grille de 30 m que l'entraînement.
+3. Elle envoie l'image à l'API Rust (`/v1/predict/raster`).
+
+Pour valider la chaîne, une zone de Kerinci a été traitée des deux façons :
+- **Optique** : le composite Planetary Computer reproduit la scène d'entraînement (exportée depuis Google Earth Engine). Les médianes diffèrent de moins de 5 % et la corrélation par pixel est de 0,87 à 0,95.
+- **Radar** : la correspondance est moins bonne (2021 contre 2023), avec une corrélation HH de 0,24.
+- **Classes** : 72 % sont identiques entre les deux sources. L'accord avec la carte KLHK est un peu meilleur avec Planetary Computer (0,63 contre 0,59).
+
+**Limite :** le modèle n'a vu qu'une région de Sumatra. Il reste crédible dans les paysages tropicaux humides semblables. Ailleurs, il plaque ses 14 classes indonésiennes sur un paysage inconnu, et l'application l'indique.
 
 ## Démarrage
 

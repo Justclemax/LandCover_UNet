@@ -4,7 +4,7 @@
 //!   API_HOST (127.0.0.1)  API_PORT (8030)  LANDCOVER_BUNDLE_DIR (models/rust)
 //!   API_KEY (none = open)  CORS_ORIGINS (none; "*" or a comma-separated list)
 //!   MAX_CONCURRENT (2)  INFERENCE_THREADS (cores / MAX_CONCURRENT)  REQUEST_TIMEOUT_SECS (60)
-//!   MAX_WINDOW_PIXELS (1200000)  RUST_LOG (info)
+//!   MAX_WINDOW_PIXELS (1200000)  MAX_RASTER_PIXELS (262144)  RUST_LOG (info)
 //!
 //! `landcover-serve healthcheck` exits 0 if /health answers (used by Docker).
 
@@ -113,6 +113,7 @@ async fn main() {
     );
     let limits = Limits {
         max_window_pixels: num("MAX_WINDOW_PIXELS", Limits::default().max_window_pixels),
+        max_raster_pixels: num("MAX_RASTER_PIXELS", Limits::default().max_raster_pixels),
         request_timeout: Duration::from_secs(num("REQUEST_TIMEOUT_SECS", 60)),
         ..Limits::default()
     };

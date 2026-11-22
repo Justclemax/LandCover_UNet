@@ -6,6 +6,7 @@
 //! - `GET  /v1/openapi.json`     OpenAPI 3.1 description
 //! - `POST /v1/predict/bbox`     classify a lon/lat box of the Kerinci scene -> PNG overlay + areas
 //! - `POST /v1/predict/image`    classify a client image (H x W x C values, `null` = missing)
+//! - `POST /v1/predict/raster`   same as binary float32 (up to 512 x 512), e.g. imagery fetched anywhere on Earth
 //!
 //! Safety limits: optional API key (`x-api-key`, constant-time comparison), body size limit,
 //! window/image size limits, a semaphore bounding concurrent inferences (503 when the queue
@@ -20,7 +21,8 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use axum::body::Bytes;
-use axum::extract::{Request, State};
+use axum::extract::rejection::QueryRejection;
+use axum::extract::{Query, Request, State};
 use axum::http::{HeaderValue, StatusCode, header};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
@@ -44,6 +46,7 @@ pub const OPENAPI: &str = include_str!("../openapi.json");
 pub struct Limits {
     pub max_window_pixels: usize,
     pub max_image_pixels: usize,
+    pub max_raster_pixels: usize,
     pub max_body_bytes: usize,
     pub queue_wait: Duration,
     pub request_timeout: Duration,
@@ -54,7 +57,8 @@ impl Default for Limits {
         Self {
             max_window_pixels: 1_200_000,
             max_image_pixels: 256 * 256,
-            max_body_bytes: 8 << 20,
+            max_raster_pixels: 512 * 512,
+            max_body_bytes: 12 << 20,
             queue_wait: Duration::from_secs(10),
             request_timeout: Duration::from_secs(60),
         }
@@ -180,6 +184,7 @@ async fn model_info(State(state): State<AppState>) -> Json<serde_json::Value> {
                   "resolution_deg": b.scene.transform[0]},
         "tiling": {"tile": b.tile, "margin": b.tile_margin},
         "limits": {"max_window_pixels": l.max_window_pixels, "max_image_pixels": l.max_image_pixels,
+                   "max_raster_pixels": l.max_raster_pixels,
                    "max_body_bytes": l.max_body_bytes, "auth": state.api_key.is_some()},
         "metrics": b.metrics,
     }))
@@ -236,7 +241,7 @@ async fn predict_bbox(
         "bounds": geo::window_bounds(&b.scene, win),
         "window": {"row": win.r0, "col": win.c0, "height": win.height(), "width": win.width()},
         "png_base64": base64::engine::general_purpose::STANDARD.encode(png),
-        "areas": geo::class_areas(b, &pred, true),
+        "areas": geo::class_areas(b, &pred, &|y| geo::pixel_area_ha(&b.scene, win.r0 + y)),
         "mean_confidence": mean_conf,
         "elapsed_ms": started.elapsed().as_secs_f64() * 1000.0,
     });
@@ -306,10 +311,125 @@ async fn predict_image(
         "width": req.width,
         "height": req.height,
         "classes": pred.classes,
-        "areas": geo::class_areas(&state.engine.bundle, &pred, false),
+        "areas": geo::class_areas(&state.engine.bundle, &pred, &|_| 0.0),
         "mean_confidence": mean_confidence(&pred.classes, &pred.confidence),
         "elapsed_ms": started.elapsed().as_secs_f64() * 1000.0,
     })))
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RasterQuery {
+    width: usize,
+    height: usize,
+    west: Option<f64>,
+    south: Option<f64>,
+    east: Option<f64>,
+    north: Option<f64>,
+    #[serde(default)]
+    include_classes: bool,
+    opacity: Option<f32>,
+}
+
+/// Binary image: body = height x width x C little-endian float32 (pixel-interleaved, NaN =
+/// missing), size in the query string. With west/south/east/north the areas are in hectares.
+async fn predict_raster(
+    State(state): State<AppState>,
+    query: Result<Query<RasterQuery>, QueryRejection>,
+    body: Bytes,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    let Query(q) =
+        query.map_err(|e| ApiError::BadRequest(format!("paramètres invalides : {e}")))?;
+    let n_ch = state.engine.bundle.channels.len();
+    let opacity = q.opacity.unwrap_or(0.85);
+    if !(0.0..=1.0).contains(&opacity) {
+        return Err(ApiError::Invalid("opacity doit être entre 0 et 1".into()));
+    }
+    if q.width == 0 || q.height == 0 {
+        return Err(ApiError::Invalid(
+            "width et height doivent être positifs".into(),
+        ));
+    }
+    let pixels = q
+        .width
+        .checked_mul(q.height)
+        .ok_or_else(|| ApiError::TooLarge("image trop grande".into()))?;
+    if pixels > state.limits.max_raster_pixels {
+        return Err(ApiError::TooLarge(format!(
+            "image de {pixels} pixels, maximum {}",
+            state.limits.max_raster_pixels
+        )));
+    }
+    if body.len() != pixels * n_ch * 4 {
+        return Err(ApiError::Invalid(format!(
+            "le corps doit faire width x height x {n_ch} x 4 = {} octets, reçu {}",
+            pixels * n_ch * 4,
+            body.len()
+        )));
+    }
+    let bbox = match (q.west, q.south, q.east, q.north) {
+        (Some(w), Some(s), Some(e), Some(n)) => {
+            if ![w, s, e, n].iter().all(|v| v.is_finite())
+                || w >= e
+                || s >= n
+                || s < -90.0
+                || n > 90.0
+            {
+                return Err(ApiError::Invalid(
+                    "bbox invalide (ouest < est, sud < nord, en degrés)".into(),
+                ));
+            }
+            Some([w, s, e, n])
+        }
+        (None, None, None, None) => None,
+        _ => {
+            return Err(ApiError::Invalid(
+                "donnez les quatre bornes west, south, east, north ou aucune".into(),
+            ));
+        }
+    };
+    let (words, _) = body.as_chunks::<4>();
+    let data: Vec<f32> = words.iter().map(|w| f32::from_le_bytes(*w)).collect();
+    let img = MemImage {
+        data,
+        width: q.width,
+        height: q.height,
+        channels: n_ch,
+    };
+    let win = Window {
+        r0: 0,
+        r1: q.height,
+        c0: 0,
+        c1: q.width,
+    };
+    let started = Instant::now();
+    let alpha = (opacity * 255.0).round() as u8;
+    let (pred, png) = infer(&state, move |e| {
+        let p = e.predict(&img, win)?;
+        let png = geo::render_png(&e.bundle, &p, alpha)?;
+        Ok((p, png))
+    })
+    .await?;
+    let (w, h) = (q.width, q.height);
+    let areas = match bbox {
+        Some(b) => geo::class_areas(&state.engine.bundle, &pred, &|y| {
+            geo::grid_row_area_ha(b, w, h, y)
+        }),
+        None => geo::class_areas(&state.engine.bundle, &pred, &|_| 0.0),
+    };
+    let mut out = json!({
+        "width": w,
+        "height": h,
+        "bounds": bbox,
+        "png_base64": base64::engine::general_purpose::STANDARD.encode(png),
+        "areas": areas,
+        "mean_confidence": mean_confidence(&pred.classes, &pred.confidence),
+        "elapsed_ms": started.elapsed().as_secs_f64() * 1000.0,
+    });
+    if q.include_classes {
+        out["classes"] = json!(pred.classes);
+    }
+    Ok(Json(out))
 }
 
 fn mean_confidence(classes: &[u8], conf: &[f32]) -> f64 {
@@ -344,6 +464,7 @@ pub fn router(state: AppState, origins: Option<Vec<String>>) -> Router {
     let protected = Router::new()
         .route("/v1/predict/bbox", post(predict_bbox))
         .route("/v1/predict/image", post(predict_image))
+        .route("/v1/predict/raster", post(predict_raster))
         .route_layer(middleware::from_fn_with_state(state.clone(), require_key));
     let mut app = Router::new()
         .route("/health", get(health))

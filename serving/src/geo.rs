@@ -64,6 +64,17 @@ pub fn pixel_area_ha(scene: &SceneInfo, r: usize) -> f64 {
     a * M_PER_DEG_LON_EQUATOR * lat.cos() * (-e) * M_PER_DEG_LAT / 10_000.0
 }
 
+/// Pixel area (ha) of row `y` of a `height`-row north-up grid covering `[west, south, east, north]`.
+pub fn grid_row_area_ha(bbox: [f64; 4], width: usize, height: usize, y: usize) -> f64 {
+    let [west, south, east, north] = bbox;
+    let (dx, dy) = (
+        (east - west) / width as f64,
+        (north - south) / height as f64,
+    );
+    let lat = (north - (y as f64 + 0.5) * dy).to_radians();
+    dx * M_PER_DEG_LON_EQUATOR * lat.cos() * dy * M_PER_DEG_LAT / 10_000.0
+}
+
 #[derive(Debug, Serialize)]
 pub struct ClassArea {
     pub index: u8,
@@ -75,17 +86,17 @@ pub struct ClassArea {
 }
 
 /// Hectares per predicted class (classes with at least one pixel), largest first.
-/// `scene_rows` is false for client images, whose pixels have no known position.
-pub fn class_areas(bundle: &Bundle, p: &Prediction, scene_rows: bool) -> Vec<ClassArea> {
+/// `row_ha(y)` is the area of one pixel of row `y` of the prediction (0 when unknown).
+pub fn class_areas(
+    bundle: &Bundle,
+    p: &Prediction,
+    row_ha: &dyn Fn(usize) -> f64,
+) -> Vec<ClassArea> {
     let k = bundle.classes.len();
     let (mut pixels, mut ha) = (vec![0u64; k + 1], vec![0f64; k + 1]);
     let w = p.window.width();
     for (y, row) in p.classes.chunks_exact(w).enumerate() {
-        let area = if scene_rows {
-            pixel_area_ha(&bundle.scene, p.window.r0 + y)
-        } else {
-            0.0
-        };
+        let area = row_ha(y);
         for &c in row {
             pixels[c as usize] += 1;
             ha[c as usize] += area;

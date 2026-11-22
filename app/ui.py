@@ -169,10 +169,19 @@ def overlay(m: folium.Map, name: str, url: str, bounds, opacity: float = 0.85) -
 # ----------------------------------------------------------------------------- Rust API client
 def api(path: str, body: dict | None = None, timeout: float = 90) -> tuple[dict | None, str | None, float]:
     """(json, error message, round-trip ms). Never raises: the page shows the error."""
-    headers = {"content-type": "application/json"}
+    data = json.dumps(body).encode() if body is not None else None
+    return _call(path, data, "application/json", timeout)
+
+
+def api_raw(path: str, body: bytes, timeout: float = 120) -> tuple[dict | None, str | None, float]:
+    """POST raw bytes (float32 raster) to the API."""
+    return _call(path, body, "application/octet-stream", timeout)
+
+
+def _call(path: str, data: bytes | None, content_type: str, timeout: float) -> tuple[dict | None, str | None, float]:
+    headers = {"content-type": content_type}
     if API_KEY:
         headers["x-api-key"] = API_KEY
-    data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(f"{API_URL}{path}", data=data, headers=headers, method="POST" if data else "GET")
     t0 = time.perf_counter()
     try:

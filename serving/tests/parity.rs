@@ -261,3 +261,83 @@ async fn api_key_is_enforced() {
     );
     assert_eq!(call(a, "GET", "/health", "", None).await.0, StatusCode::OK);
 }
+
+async fn call_raw(app: axum::Router, uri: &str, body: Vec<u8>) -> (StatusCode, serde_json::Value) {
+    let req = Request::builder()
+        .method("POST")
+        .uri(uri)
+        .header("content-type", "application/octet-stream")
+        .body(Body::from(body))
+        .unwrap();
+    let resp = app.oneshot(req).await.unwrap();
+    let status = resp.status();
+    let bytes = resp.into_body().collect().await.unwrap().to_bytes();
+    (
+        status,
+        serde_json::from_slice(&bytes).unwrap_or(serde_json::Value::Null),
+    )
+}
+
+#[tokio::test]
+async fn raster_route() {
+    if !have_bundle() {
+        return;
+    }
+    let a = app(None);
+    // A real 40 x 30 window of the scene, sent as raw float32: same classes as the scene route.
+    let e = engine();
+    let win = Window {
+        r0: 1300,
+        r1: 1330,
+        c0: 1000,
+        c1: 1040,
+    };
+    let mut body = Vec::new();
+    let mut row = vec![0f32; 40 * 8];
+    use landcover_serve::source::Source;
+    for r in win.r0..win.r1 {
+        e.scene.read_row(r, win.c0, win.c1, &mut row).unwrap();
+        for v in &row {
+            body.extend_from_slice(&v.to_le_bytes());
+        }
+    }
+    let uri = "/v1/predict/raster?width=40&height=30&west=101.3&south=-2.1&east=101.31&north=-2.09&include_classes=true";
+    let (s, v) = call_raw(a.clone(), uri, body.clone()).await;
+    assert_eq!(s, StatusCode::OK, "{v}");
+    assert_eq!(v["classes"].as_array().unwrap().len(), 1200);
+    assert!(v["areas"][0]["hectares"].as_f64().unwrap() > 0.0);
+    // Without scene context the border can differ, but most pixels match the scene prediction.
+    let scene = e.predict(&e.scene, win).unwrap();
+    let same = v["classes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .zip(&scene.classes)
+        .filter(|(a, b)| a.as_u64() == Some(**b as u64))
+        .count();
+    assert!(same as f64 / 1200.0 > 0.6, "{same}/1200");
+
+    let (s, _) = call_raw(
+        a.clone(),
+        "/v1/predict/raster?width=40&height=31",
+        body.clone(),
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+    let (s, _) = call_raw(
+        a.clone(),
+        "/v1/predict/raster?width=40&height=30&west=1",
+        body.clone(),
+    )
+    .await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
+    let (s, _) = call_raw(
+        a.clone(),
+        "/v1/predict/raster?width=4000&height=4000",
+        vec![0; 16],
+    )
+    .await;
+    assert_eq!(s, StatusCode::PAYLOAD_TOO_LARGE);
+    let (s, _) = call_raw(a, "/v1/predict/raster?width=abc&height=1", vec![]).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+}

@@ -4,9 +4,9 @@
     "file": "model.onnx",
     "architecture": "U-Net",
     "parameters": 4369478,
-    "trained_at": "2026-11-22T22:18:57+00:00",
+    "trained_at": "2026-11-22T22:58:52+00:00",
     "fast": false,
-    "sha256": "21ac74ec9c8a4b20b9a8ad5fcafc27ecab19bfb15cbcca71923422879ff1ca00"
+    "sha256": "0fc3db20272d84be81cddf8f4f191d6a43498b484e09fb0f7e676230aad68e2f"
   },
   "channels": [
     "B2",
@@ -152,8 +152,6 @@
       -1.7643810495391523
     ],
     "sha256": "b962645b5e9b3ce2eb20ac054f4185ebdf2a12770a866804e0a16ae10396f722",
-    "name": "Kerinci, Sumatra (Indonésie)",
-    "year": 2023,
     "fingerprint": [
       {
         "missing": 9918,
@@ -195,14 +193,16 @@
         "mean": -12.776050773389352,
         "std": 2.0849286160303584
       }
-    ]
+    ],
+    "name": "Kerinci, Sumatra (Indonésie)",
+    "year": 2023
   },
   "metrics": {
-    "test_overall_accuracy": 0.6651409240656805,
-    "test_mean_iou": 0.2443293118580763,
-    "test_macro_f1": 0.3432543321534562,
-    "test_kappa": 0.5348125802831932,
-    "rf_test_mean_iou": 0.22105043817030692,
-    "mean_confidence": 0.6524176001548767
+    "test_overall_accuracy": 0.7270670833368242,
+    "test_mean_iou": 0.26438434533643024,
+    "test_macro_f1": 0.3674811173314929,
+    "test_kappa": 0.5883946940423022,
+    "rf_test_mean_iou": 0.22050134114048817,
+    "mean_confidence": 0.8269391655921936
   }
 }
