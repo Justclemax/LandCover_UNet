@@ -1,8 +1,10 @@
 # Rust inference API. Build context: the repository root (see docker-compose.yml).
 #
 # 1. scene: rebuilds models/rust/scene.bin (240 MB, not in git) from the public rasters with
-#    the core Python deps only (numpy + rasterio, no torch), and checks its SHA-256 against
-#    the committed bundle.json, so the server can never run on a different scene.
+#    the core Python deps only (numpy + rasterio, no torch), and checks its per-channel fingerprint
+#    (missing count, mean, std) against the committed bundle.json, so the server can never
+#    run on a different scene. (Not a SHA-256: numpy's SIMD maths differ in the last bit
+#    between CPUs.)
 # 2. build: compiles the server (dependency layer cached separately).
 # 3. runtime: distroless, non-root, ~15 MB binary + model + scene.
 

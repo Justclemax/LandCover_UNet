@@ -43,16 +43,34 @@ def write_scene(x: np.ndarray, path) -> str:
     return h.hexdigest()
 
 
-def scene_only(check: bool = True) -> str:
-    """Rebuild scene.bin from the public rasters (no torch needed), optionally checking it is
-    byte-identical to the scene the committed model was exported with."""
+def fingerprint(x: np.ndarray) -> list[dict]:
+    """Per-channel missing count, mean and std (float64). Unlike a SHA-256 it survives the
+    last-bit differences of numpy's SIMD maths between CPUs (NEON on a Mac, AVX on Linux)."""
+    out = []
+    for c in range(x.shape[0]):
+        v = np.asarray(x[c], dtype=np.float64)
+        ok = np.isfinite(v)
+        out.append({"missing": int((~ok).sum()), "mean": float(v[ok].mean()), "std": float(v[ok].std())})
+    return out
+
+
+def same_scene(a: list[dict], b: list[dict], rtol: float = 1e-5) -> bool:
+    return len(a) == len(b) and all(
+        x["missing"] == y["missing"] and np.isclose(x["mean"], y["mean"], rtol=rtol)
+        and np.isclose(x["std"], y["std"], rtol=rtol) for x, y in zip(a, b, strict=True))
+
+
+def scene_only(check: bool = True) -> list[dict]:
+    """Rebuild scene.bin from the public rasters (no torch needed) and check it matches, within
+    float rounding, the scene the committed model was exported with."""
     scene = load()
-    sha = write_scene(scene.x, cfg.RUST_DIR / "scene.bin")
+    write_scene(scene.x, cfg.RUST_DIR / "scene.bin")
+    fp = fingerprint(scene.x)
     if check:
-        want = json.loads((cfg.RUST_DIR / "bundle.json").read_text())["scene"]["sha256"]
-        if sha != want:
-            raise SystemExit(f"scene.bin différent de celui du bundle ({sha[:12]} au lieu de {want[:12]})")
-    return sha
+        want = json.loads((cfg.RUST_DIR / "bundle.json").read_text())["scene"]["fingerprint"]
+        if not same_scene(fp, want):
+            raise SystemExit(f"scene.bin ne correspond pas au bundle :\n{fp}\nattendu :\n{want}")
+    return fp
 
 
 def run(write_scene_file: bool = True) -> dict:
@@ -94,6 +112,7 @@ def run(write_scene_file: bool = True) -> dict:
         "classes": [{k: c[k] for k in ("index", "code", "label", "label_fr", "color")} for c in scene.classes],
         "scene": {"file": "scene.bin", "layout": "HWC", "dtype": "f32le", "width": m["width"], "height": m["height"],
                   "crs": m["crs"], "transform": m["transform"], "bounds": m["bounds"], "sha256": scene_sha,
+                  "fingerprint": fingerprint(scene.x),
                   "name": "Kerinci, Sumatra (Indonésie)", "year": 2023},
         "metrics": metrics["summary"],
     }
@@ -108,7 +127,8 @@ if __name__ == "__main__":
     ap.add_argument("--scene-only", action="store_true", help="only rebuild scene.bin and check its SHA-256")
     a = ap.parse_args()
     if a.scene_only:
-        print(f"scene.bin reconstruit et vérifié ({scene_only()[:12]})")
+        scene_only()
+        print("scene.bin reconstruit et vérifié (empreinte par canal)")
         raise SystemExit(0)
     b = run(not a.no_scene)
     print(f"Bundle écrit dans {cfg.RUST_DIR} ({len(b['classes'])} classes, modèle {b['model']['sha256'][:12]})")

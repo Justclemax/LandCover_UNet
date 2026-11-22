@@ -30,7 +30,7 @@ jobs:
             serving/target
             data/raw
           key: rust-${{ hashFiles('serving/Cargo.lock') }}-${{ hashFiles('src/landcover/config.py') }}
-      # Rebuild scene.bin from the public rasters (SHA-256 checked) so the parity tests run for real.
+      # Rebuild scene.bin from the public rasters (fingerprint checked) so the parity tests run for real.
       - run: uv sync --frozen --no-default-groups && uv run --no-sync python -m landcover.export --scene-only
       - working-directory: serving
         run: |

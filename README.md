@@ -97,7 +97,7 @@ DAGSTER_HOME=$PWD/.dagster uv run dagster dev -m landcover.pipeline -p 3030   # 
 
 - Build pack Docker Compose sur `docker-compose.yml`, sans port publié.
 - Le domaine se configure sur le service **app**, sous la forme `https://domaine:8910`.
-- L'image de l'API reconstruit la scène binaire à partir des données publiques et vérifie son SHA-256 par rapport au bundle versionné.
+- L'image de l'API reconstruit la scène binaire à partir des données publiques et vérifie son empreinte par canal (valeurs manquantes, moyenne, écart-type) par rapport au bundle versionné. Ce n'est pas un SHA-256, parce que les calculs vectorisés de numpy diffèrent au dernier bit d'un processeur à l'autre.
 - Si l'API reçoit un domaine public pour d'autres applications, définissez `API_KEY` dans Coolify.
 
 ## Données et licences
